@@ -5,7 +5,7 @@ import homeImage from "../image/home img.jpg";
 import aboutImage from "../image/aboutimgjpg.jpg";
 import aboutWhoImage from "../image/peUhF8-bdT1xrp-lx9gfNq-vWDO6sBo6u6FJyyUUNYCnIbSS2Z0H7sZdUl40fdBGEvMQUJbM-fCmwkepN2OOt2RPrB7nm-6ig26tIPskxqUtCN2j1Y-1nR2Z5ycWGklqB2kFbWRHxCOdrHSjufEajHiolJz-qAEDdt-Nf2oWq2Jcld9TUToaJvUjrk_Lu-_A.jpg";
 
-import useBloodCompatibility from "@/Hooks/useBloodCompatibility";
+import useBloodCompatibility from "@/hooks/useBloodCompatibility";
 
 function HomePage() {
   const {
