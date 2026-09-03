@@ -4,6 +4,7 @@ import Chat from "@/Pages/Chat";
 import Contact from "@/Pages/Contact";
 import Donate from "@/Pages/Donate";
 import FindBlood from "@/Pages/FindBlood";
+import ForgotPassword from "@/Pages/ForgotPassword";
 import HomePage from "@/Pages/HomePage";
 import Login from "@/Pages/Login";
 import Posts from "@/Pages/Posts";
@@ -47,6 +48,10 @@ export const router = createBrowserRouter([
       {
         path: "/chat",
         element: <Chat />,
+      },
+      {
+        path: "/forgot-password",
+        element: <ForgotPassword />,
       },
       {
         element: <ProtectedRoute />,

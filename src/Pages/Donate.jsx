@@ -52,8 +52,7 @@ function DonateBlood() {
     if (
       !formData.name ||
       !formData.phone ||
-      !formData.city ||
-      !formData.availableDate
+      !formData.city
     ) {
       setError("Please complete all fields.");
       return;
@@ -74,8 +73,6 @@ function DonateBlood() {
           address: {
             city: formData.city,
           },
-          availableDate: formData.availableDate,
-          available: true,
         }),
       });
 
@@ -84,6 +81,13 @@ function DonateBlood() {
       }
 
       const newDonor = await response.json();
+
+      const donationDate = new Date();
+      const blockedUntilDate = new Date(donationDate);
+
+      blockedUntilDate.setMonth(
+        blockedUntilDate.getMonth() + 3
+      );
 
       const donor = {
         id: `local-${Date.now()}`,
@@ -94,9 +98,11 @@ function DonateBlood() {
         address: {
           city: formData.city,
         },
-        availableDate: formData.availableDate,
-        available: true,
-        blockedUntil: null,
+        availableDate: blockedUntilDate
+          .toISOString()
+          .split("T")[0],
+        available: false,
+        blockedUntil: blockedUntilDate.toISOString(),
         image:
           newDonor.image ||
           `https://dummyjson.com/icon/${newDonor.id || 1}/128`,
@@ -106,7 +112,9 @@ function DonateBlood() {
       addDonor(donor);
 
       setMessage(
-        "You have successfully registered as a blood donor ❤️"
+        `You have successfully registered as a blood donor ❤️. You will be available again on ${blockedUntilDate
+          .toISOString()
+          .split("T")[0]}.`
       );
 
       setFormData({
@@ -135,7 +143,6 @@ function DonateBlood() {
   return (
     <section className="min-h-screen bg-red-50 px-4 py-16">
       <div className="mx-auto max-w-6xl">
-
         <div className="mb-12 text-center">
           <span className="mx-auto inline-flex items-center gap-2 rounded-full bg-red-100 px-4 py-2 text-sm font-semibold text-red-600">
             <HeartIcon className="h-6 w-6" />
@@ -153,7 +160,6 @@ function DonateBlood() {
         </div>
 
         <div className="grid gap-10 md:grid-cols-2">
-
           <div className="rounded-3xl bg-red-600 p-8 text-white md:p-10">
             <div className="text-6xl">🩸</div>
 
@@ -167,7 +173,6 @@ function DonateBlood() {
             </p>
 
             <div className="mt-8 space-y-4">
-
               <div className="flex items-center gap-2 rounded-2xl bg-white/10 p-4">
                 <HeartIcon className="h-6 w-6" />
                 Save lives
@@ -187,12 +192,10 @@ function DonateBlood() {
                 <div className="text-2xl">🩸</div>
                 Become a hero
               </div>
-
             </div>
           </div>
 
           <div className="rounded-3xl bg-white p-8 shadow-xl md:p-10">
-
             <h2 className="text-2xl font-bold text-gray-900">
               Register as a Donor
             </h2>
@@ -202,7 +205,6 @@ function DonateBlood() {
             </p>
 
             <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-
               <div>
                 <label className="mb-2 block font-medium text-gray-700">
                   Full Name
@@ -270,20 +272,6 @@ function DonateBlood() {
                 />
               </div>
 
-              <div>
-                <label className="mb-2 block font-medium text-gray-700">
-                  Available Date
-                </label>
-
-                <input
-                  type="date"
-                  name="availableDate"
-                  value={formData.availableDate}
-                  onChange={handleChange}
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-red-500"
-                />
-              </div>
-
               {message && (
                 <div className="rounded-xl bg-green-50 p-4 font-medium text-green-600">
                   {message}
@@ -310,13 +298,11 @@ function DonateBlood() {
                   </>
                 )}
               </Button>
-
             </form>
           </div>
         </div>
 
         <div className="mt-16">
-
           <div className="mb-8 text-center">
             <span className="inline-block rounded-full bg-red-100 px-4 py-2 text-sm font-semibold text-red-600">
               🩸 DONOR LIST
@@ -332,7 +318,6 @@ function DonateBlood() {
           </div>
 
           {donors.length === 0 ? (
-
             <div className="rounded-3xl bg-white p-12 text-center shadow-sm">
               <Heart className="mx-auto h-16 w-16 text-red-600" />
 
@@ -344,13 +329,9 @@ function DonateBlood() {
                 Be the first person to register as a donor.
               </p>
             </div>
-
           ) : (
-
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-
               {donors.map((donor, index) => {
-
                 const name = donor.firstName
                   ? `${donor.firstName} ${donor.lastName || ""}`
                   : donor.name || "Blood Donor";
@@ -367,7 +348,8 @@ function DonateBlood() {
 
                 const image =
                   donor.image ||
-                  `https://dummyjson.com/icon/${donor.id || index}/128`;
+                  `https://dummyjson.com/icon/${donor.id || index
+                  }/128`;
 
                 const blockedUntil = getBlockedUntil(donor);
                 const isBlocked = !!blockedUntil;
@@ -382,7 +364,7 @@ function DonateBlood() {
                     <div className="flex items-center justify-between gap-4">
 
                       <div className="flex items-center gap-4">
-
+                        
                         <img
                           src={image}
                           alt={name}
@@ -399,17 +381,14 @@ function DonateBlood() {
                             {city}
                           </p>
                         </div>
-
                       </div>
 
                       <span className="rounded-xl bg-red-600 px-3 py-2 font-bold text-white">
                         {blood}
                       </span>
-
                     </div>
 
                     <div className="mt-6 space-y-3 text-sm text-gray-600">
-
                       <p className="flex items-center gap-2">
                         <MapPin className="h-4 w-4" />
                         Location:
@@ -439,7 +418,6 @@ function DonateBlood() {
                       )}
 
                       {isBlocked ? (
-
                         <div className="rounded-xl bg-red-50 p-3">
                           <p className="font-semibold text-red-600">
                             🔴 Currently Unavailable
@@ -452,19 +430,17 @@ function DonateBlood() {
                             </span>
                           </p>
                         </div>
-
-                      ) : (
-
+                      ) 
+                      : 
+                      (
                         <p className="flex items-center gap-2">
                           <Activity className="h-4 w-4" />
 
                           <span className="font-semibold text-green-600">
-                            Available
+                            🟢 Available
                           </span>
                         </p>
-
                       )}
-
                     </div>
 
                     {!isBlocked && (
@@ -490,6 +466,7 @@ function DonateBlood() {
               })}
 
             </div>
+
           )}
 
         </div>
