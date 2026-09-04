@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 function useFindBlood(navigate) {
   const [activeTab, setActiveTab] = useState("donors");
   const [donors, setDonors] = useState([]);
@@ -64,10 +65,12 @@ function useFindBlood(navigate) {
     };
 
     window.addEventListener("donorsUpdated", handleUpdate);
+    window.addEventListener("requestsUpdated", handleUpdate);
     window.addEventListener("storage", handleUpdate);
 
     return () => {
       window.removeEventListener("donorsUpdated", handleUpdate);
+      window.removeEventListener("requestsUpdated", handleUpdate);
       window.removeEventListener("storage", handleUpdate);
     };
   }, []);
@@ -202,6 +205,34 @@ function useFindBlood(navigate) {
     });
   };
 
+  const addBloodRequest = (newRequest) => {
+    let localRequests = [];
+
+    try {
+      localRequests = JSON.parse(
+        localStorage.getItem("blood_requests") || "[]"
+      );
+    } catch {
+      localRequests = [];
+    }
+
+    const requestItem = {
+      id: Date.now(),
+      createdAt: new Date().toISOString(),
+      ...newRequest,
+    };
+
+    const updatedRequests = [requestItem, ...localRequests];
+
+    localStorage.setItem(
+      "blood_requests",
+      JSON.stringify(updatedRequests)
+    );
+
+    setRequests(updatedRequests);
+    window.dispatchEvent(new Event("requestsUpdated"));
+  };
+
   const filteredDonors = donors.filter((donor) => {
     const donorBlood =
       donor.bloodGroup ||
@@ -247,8 +278,8 @@ function useFindBlood(navigate) {
     handleContact,
     getBlockedUntil,
     loadData,
+    addBloodRequest,
   };
 }
 
 export default useFindBlood;
-
