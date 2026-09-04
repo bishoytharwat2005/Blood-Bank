@@ -12,7 +12,7 @@ export default function useFindBlood(navigate) {
     setLoading(true);
     try {
       // 1. جلب بيانات المتبرعين من Endpoint المستخدمين
-      const donorsRes = await fetch("https://dummyjson.com/users?limit=9");
+      const donorsRes = await fetch("https://dummyjson.com/users?limit=150");
       const donorsData = await donorsRes.json();
 
       const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
