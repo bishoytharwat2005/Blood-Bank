@@ -51,17 +51,15 @@ function FindBlood() {
     }
   }, []);
 
-  const handleSubmitRequest = (e) => {
+  const handleSubmitRequest = async (e) => {
     e.preventDefault();
     if (!formData.firstName || !formData.phone || !formData.hospital) {
       alert("Please fill in all required fields.");
       return;
     }
 
-    addBloodRequest(formData);
-
-    if (loadData) {
-      loadData();
+    if (addBloodRequest) {
+      await addBloodRequest(formData);
     }
 
     setFormData({
@@ -146,7 +144,6 @@ function FindBlood() {
                       className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-red-500"
                     >
                       <option value="">All Blood Types</option>
-
                       <option value="A+">A+</option>
                       <option value="A-">A-</option>
                       <option value="B+">B+</option>
