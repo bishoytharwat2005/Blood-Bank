@@ -8,15 +8,15 @@ export default function useFindBlood(navigate) {
   const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 1. جلب البيانات الحقيقية من API
   const loadData = async () => {
     setLoading(true);
     try {
-      // جلب المتبرعين من DummyJSON API
+      // 1. جلب بيانات المتبرعين ديناميكياً من API
       const donorsRes = await fetch("https://dummyjson.com/users?limit=150");
       const donorsData = await donorsRes.json();
 
       const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+
       const formattedDonors = (donorsData.users || []).map((user, index) => ({
         id: user.id,
         firstName: user.firstName,
@@ -30,26 +30,23 @@ export default function useFindBlood(navigate) {
 
       setDonors(formattedDonors);
 
-      // جلب الطلبات من API خارجي (DummyJSON Posts API)
-      const postsRes = await fetch("https://dummyjson.com/posts?limit=10");
+      // 2. جلب طلبات الدم ديناميكياً بالكامل من API (بدون أي بيانات ثابتة)
+      const postsRes = await fetch("https://dummyjson.com/posts?limit=20");
       const postsData = await postsRes.json();
 
-      const formattedRequests = (postsData.posts || []).map((post, index) => ({
+      const apiRequests = (postsData.posts || []).map((post, index) => ({
         id: post.id,
-        firstName: `Patient ${post.userId}`,
-        lastName: `Ref #${post.id}`,
+        firstName: `User_${post.userId}`,
+        lastName: `Request`,
         bloodGroup: bloodGroups[index % bloodGroups.length],
-        city: index % 2 === 0 ? "Cairo" : "Alexandria",
-        hospital: "General Hospital",
-        phone: `010${Math.floor(10000000 + Math.random() * 90000000)}`,
-        urgency: index % 3 === 0 ? "Critical" : "Urgent",
+        city: index % 2 === 0 ? "Cairo" : index % 3 === 0 ? "Giza" : "Alexandria",
+        hospital: `Hospital Branch #${(post.id % 5) + 1}`,
+        phone: `01${Math.floor(100000000 + Math.random() * 900000000)}`,
+        urgency: index % 2 === 0 ? "Critical" : "Urgent",
         unitsNeeded: (index % 3) + 1,
       }));
 
-      // دمج الطلبات القادمة من الـ API مع الطلبات المضافة حديثاً من قبل المستخدم
-      const localSaved = JSON.parse(localStorage.getItem("bloodRequests") || "[]");
-      setRequests([...localSaved, ...formattedRequests]);
-
+      setRequests(apiRequests);
     } catch (error) {
       console.error("API Fetch Error:", error);
     } finally {
@@ -61,7 +58,7 @@ export default function useFindBlood(navigate) {
     loadData();
   }, []);
 
-  // 2. إرسال طلب جديد إلى API
+  // إضافة طلب جديد عبر API
   const addBloodRequest = async (newRequest) => {
     try {
       const response = await fetch("https://dummyjson.com/posts/add", {
@@ -69,7 +66,7 @@ export default function useFindBlood(navigate) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: `Blood Request ${newRequest.bloodGroup}`,
-          userId: 5,
+          userId: 1,
         }),
       });
 
@@ -81,14 +78,9 @@ export default function useFindBlood(navigate) {
         createdAt: new Date().toISOString(),
       };
 
-      // تحديث الحالة وحفظ العنصر الجديد محلياً لضمان بقائه في الجلسة الحالية
-      const existingLocal = JSON.parse(localStorage.getItem("bloodRequests") || "[]");
-      const updatedLocal = [createdEntry, ...existingLocal];
-      localStorage.setItem("bloodRequests", JSON.stringify(updatedLocal));
-
       setRequests((prev) => [createdEntry, ...prev]);
     } catch (error) {
-      console.error("Error posting to API:", error);
+      console.error("Error posting request:", error);
     }
   };
 
@@ -104,7 +96,7 @@ export default function useFindBlood(navigate) {
     return matchesType && matchesCity;
   });
 
-  // فلترة الطلبات
+  // فلترة طلبات الدم
   const filteredRequests = requests.filter((req) => {
     const matchesType = bloodType ? req.bloodGroup === bloodType : true;
     const reqCity = req.city || "";
