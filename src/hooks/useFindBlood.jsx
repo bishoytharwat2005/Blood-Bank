@@ -11,12 +11,12 @@ export default function useFindBlood(navigate) {
   const loadData = async () => {
     setLoading(true);
     try {
-      // 1. جلب بيانات المتبرعين من API
+      // 1. جلب بيانات المتبرعين من Endpoint المستخدمين
       const donorsRes = await fetch("https://dummyjson.com/users?limit=9");
       const donorsData = await donorsRes.json();
 
       const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
-      const formattedDonors = donorsData.users.map((user, index) => ({
+      const formattedDonors = (donorsData.users || []).map((user, index) => ({
         id: user.id,
         firstName: user.firstName,
         lastName: user.lastName,
@@ -29,7 +29,7 @@ export default function useFindBlood(navigate) {
 
       setDonors(formattedDonors);
 
-      // 2. جلب طلبات الدم (من API أو LocalStorage كنسخة احتياطية)
+      // 2. جلب طلبات الدم (من LocalStorage كنسخة احتياطية)
       const savedRequests = localStorage.getItem("bloodRequests");
       if (savedRequests) {
         setRequests(JSON.parse(savedRequests));
@@ -63,11 +63,14 @@ export default function useFindBlood(navigate) {
 
   const addBloodRequest = async (newRequest) => {
     try {
-      // إرسال POST Request إلى الـ API
+      // إرسال POST Request إلى Endpoint البوستات
       const response = await fetch("https://dummyjson.com/posts/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newRequest),
+        body: JSON.stringify({
+          title: `Blood Request ${newRequest.bloodGroup}`,
+          userId: 5,
+        }),
       });
 
       const data = await response.json();
