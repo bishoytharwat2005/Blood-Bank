@@ -8,13 +8,77 @@ export default function useFindBlood(navigate) {
   const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // بيانات افتراضية للمتبرعين
+  const initialDonors = [
+    {
+      id: 1,
+      firstName: "Ahmed",
+      lastName: "Ali",
+      bloodGroup: "A+",
+      city: "Cairo",
+      phone: "01012345678",
+      availableDate: "2026-09-10",
+    },
+    {
+      id: 2,
+      firstName: "Mina",
+      lastName: "Sameh",
+      bloodGroup: "O-",
+      city: "Alexandria",
+      phone: "01123456789",
+      availableDate: "2026-09-12",
+    },
+    {
+      id: 3,
+      firstName: "Sara",
+      lastName: "Hassan",
+      bloodGroup: "B+",
+      city: "Giza",
+      phone: "01234567890",
+      availableDate: "2026-09-15",
+    },
+  ];
+
+  // بيانات افتراضية لطلبات الدم
+  const initialRequests = [
+    {
+      id: 101,
+      firstName: "Mohamed",
+      lastName: "Ibrahim",
+      bloodGroup: "O+",
+      city: "Cairo",
+      hospital: "Al Salam Hospital",
+      phone: "01098765432",
+      urgency: "Critical",
+      unitsNeeded: 2,
+    },
+    {
+      id: 102,
+      firstName: "Kirollos",
+      lastName: "Nabil",
+      bloodGroup: "A-",
+      city: "Giza",
+      hospital: "El Borg Hospital",
+      phone: "01187654321",
+      urgency: "Urgent",
+      unitsNeeded: 1,
+    },
+  ];
+
   const loadData = async () => {
     setLoading(true);
     try {
+      // جلب الطلبات من localStorage أو تعيين البيانات الافتراضية
       const savedRequests = localStorage.getItem("bloodRequests");
-      if (savedRequests) {
+      if (savedRequests && JSON.parse(savedRequests).length > 0) {
         setRequests(JSON.parse(savedRequests));
+      } else {
+        setRequests(initialRequests);
+        localStorage.setItem("bloodRequests", JSON.stringify(initialRequests));
       }
+
+      // تعيين المتبرعين الافتراضيين
+      setDonors(initialDonors);
     } catch (error) {
       console.error(error);
     } finally {
