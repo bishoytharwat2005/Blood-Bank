@@ -31,7 +31,7 @@ export default function useFindBlood(navigate) {
       setDonors(formattedDonors);
 
       // 2. جلب طلبات الدم ديناميكياً بالكامل من API (بدون أي بيانات ثابتة)
-      const postsRes = await fetch("https://dummyjson.com/posts?limit=20");
+      const postsRes = await fetch("https://dummyjson.com/posts?limit=150");
       const postsData = await postsRes.json();
 
       const apiRequests = (postsData.posts || []).map((post, index) => ({
