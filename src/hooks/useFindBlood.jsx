@@ -8,10 +8,11 @@ export default function useFindBlood(navigate) {
   const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // 1. جلب البيانات الحقيقية من API
   const loadData = async () => {
     setLoading(true);
     try {
-      // 1. جلب بيانات المتبرعين من Endpoint المستخدمين
+      // جلب المتبرعين من DummyJSON API
       const donorsRes = await fetch("https://dummyjson.com/users?limit=150");
       const donorsData = await donorsRes.json();
 
@@ -29,29 +30,28 @@ export default function useFindBlood(navigate) {
 
       setDonors(formattedDonors);
 
-      // 2. جلب طلبات الدم (من LocalStorage كنسخة احتياطية)
-      const savedRequests = localStorage.getItem("bloodRequests");
-      if (savedRequests) {
-        setRequests(JSON.parse(savedRequests));
-      } else {
-        const initialRequests = [
-          {
-            id: 101,
-            firstName: "Mohamed",
-            lastName: "Ibrahim",
-            bloodGroup: "O+",
-            city: "Cairo",
-            hospital: "Al Salam Hospital",
-            phone: "01098765432",
-            urgency: "Critical",
-            unitsNeeded: 2,
-          },
-        ];
-        setRequests(initialRequests);
-        localStorage.setItem("bloodRequests", JSON.stringify(initialRequests));
-      }
+      // جلب الطلبات من API خارجي (DummyJSON Posts API)
+      const postsRes = await fetch("https://dummyjson.com/posts?limit=10");
+      const postsData = await postsRes.json();
+
+      const formattedRequests = (postsData.posts || []).map((post, index) => ({
+        id: post.id,
+        firstName: `Patient ${post.userId}`,
+        lastName: `Ref #${post.id}`,
+        bloodGroup: bloodGroups[index % bloodGroups.length],
+        city: index % 2 === 0 ? "Cairo" : "Alexandria",
+        hospital: "General Hospital",
+        phone: `010${Math.floor(10000000 + Math.random() * 90000000)}`,
+        urgency: index % 3 === 0 ? "Critical" : "Urgent",
+        unitsNeeded: (index % 3) + 1,
+      }));
+
+      // دمج الطلبات القادمة من الـ API مع الطلبات المضافة حديثاً من قبل المستخدم
+      const localSaved = JSON.parse(localStorage.getItem("bloodRequests") || "[]");
+      setRequests([...localSaved, ...formattedRequests]);
+
     } catch (error) {
-      console.error("API Error:", error);
+      console.error("API Fetch Error:", error);
     } finally {
       setLoading(false);
     }
@@ -61,9 +61,9 @@ export default function useFindBlood(navigate) {
     loadData();
   }, []);
 
+  // 2. إرسال طلب جديد إلى API
   const addBloodRequest = async (newRequest) => {
     try {
-      // إرسال POST Request إلى Endpoint البوستات
       const response = await fetch("https://dummyjson.com/posts/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -81,16 +81,18 @@ export default function useFindBlood(navigate) {
         createdAt: new Date().toISOString(),
       };
 
-      setRequests((prev) => {
-        const updated = [createdEntry, ...prev];
-        localStorage.setItem("bloodRequests", JSON.stringify(updated));
-        return updated;
-      });
+      // تحديث الحالة وحفظ العنصر الجديد محلياً لضمان بقائه في الجلسة الحالية
+      const existingLocal = JSON.parse(localStorage.getItem("bloodRequests") || "[]");
+      const updatedLocal = [createdEntry, ...existingLocal];
+      localStorage.setItem("bloodRequests", JSON.stringify(updatedLocal));
+
+      setRequests((prev) => [createdEntry, ...prev]);
     } catch (error) {
-      console.error("Error posting request:", error);
+      console.error("Error posting to API:", error);
     }
   };
 
+  // فلترة المتبرعين
   const filteredDonors = donors.filter((donor) => {
     const matchesType = bloodType
       ? (donor.bloodGroup || donor.bloodType) === bloodType
@@ -102,18 +104,28 @@ export default function useFindBlood(navigate) {
     return matchesType && matchesCity;
   });
 
+  // فلترة الطلبات
+  const filteredRequests = requests.filter((req) => {
+    const matchesType = bloodType ? req.bloodGroup === bloodType : true;
+    const reqCity = req.city || "";
+    const matchesCity = city
+      ? reqCity.toLowerCase().includes(city.toLowerCase())
+      : true;
+    return matchesType && matchesCity;
+  });
+
   const handleContact = (donor) => {
     if (donor.phone) {
       window.location.href = `tel:${donor.phone}`;
     } else {
-      alert("No phone number available for this donor.");
+      alert("No phone number available.");
     }
   };
 
   return {
     activeTab,
     setActiveTab,
-    requests,
+    requests: filteredRequests,
     bloodType,
     setBloodType,
     city,
