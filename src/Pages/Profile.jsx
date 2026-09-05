@@ -1,9 +1,87 @@
 import React from "react";
-import {User,Mail,Phone,MapPin,Droplet,CreditCard,Edit,Save,LogOut,Camera,} from "lucide-react";
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Droplet,
+  CreditCard,
+  Edit,
+  Save,
+  LogOut,
+  Camera,
+  Activity,
+  CalendarIcon,
+} from "lucide-react";
 import useProfile from "@/hooks/useProfile";
 
+function getDonationStatus(lastDonationDate, blockedUntil) {
+  if (!lastDonationDate && !blockedUntil) {
+    return {
+      blocked: false,
+      availableDate: null,
+      remainingDays: 0,
+    };
+  }
+
+  let untilDate;
+
+  if (blockedUntil) {
+    untilDate = new Date(blockedUntil);
+  } else {
+    const lastDonation = new Date(lastDonationDate);
+
+    if (Number.isNaN(lastDonation.getTime())) {
+      return {
+        blocked: false,
+        availableDate: null,
+        remainingDays: 0,
+      };
+    }
+
+    untilDate = new Date(lastDonation);
+    untilDate.setMonth(untilDate.getMonth() + 3);
+  }
+
+  const now = new Date();
+
+  const blocked = now < untilDate;
+
+  const remainingDays = blocked
+    ? Math.ceil((untilDate - now) / (1000 * 60 * 60 * 24))
+    : 0;
+
+  return {
+    blocked,
+    availableDate: untilDate,
+    remainingDays,
+  };
+}
+
+function formatDate(date) {
+  if (!date) return "";
+
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "";
+  }
+
+  return parsedDate.toLocaleDateString("en-GB");
+}
+
 function Profile() {
-  const {user,editing,formData,handleChange,handleFileChange,handleSave,handleLogout,handleEdit,handleCancel,} = useProfile();
+  const {
+    user,
+    editing,
+    formData,
+    handleChange,
+    handleFileChange,
+    handleSave,
+    handleLogout,
+    handleEdit,
+    handleCancel,
+  } = useProfile();
 
   if (!user) {
     return (
@@ -22,7 +100,7 @@ function Profile() {
           </p>
 
           <button
-            onClick={() => window.location.href = "/login"}
+            onClick={() => (window.location.href = "/login")}
             className="mt-6 w-full rounded-xl bg-red-600 px-6 py-3 font-semibold text-white transition hover:bg-red-700"
           >
             Go to Login
@@ -32,10 +110,14 @@ function Profile() {
     );
   }
 
+  const donationStatus = getDonationStatus(
+    user.lastDonationDate,
+    user.blockedUntil
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-gray-100 px-4 py-20">
       <div className="mx-auto max-w-5xl">
-
         <div className="mb-10 text-center">
           <p className="font-semibold uppercase tracking-wider text-red-600">
             🩸 My Profile
@@ -51,9 +133,7 @@ function Profile() {
         </div>
 
         <div className="overflow-hidden rounded-3xl bg-white shadow-2xl">
-
           <div className="bg-gradient-to-r from-red-600 to-red-700 px-8 py-10 text-center text-white">
-
             <div className="mx-auto h-28 w-28">
               {user.photo ? (
                 <img
@@ -78,11 +158,9 @@ function Profile() {
           </div>
 
           <div className="p-6 sm:p-8 md:p-10">
-
             {!editing ? (
               <>
                 <div className="grid gap-5 md:grid-cols-2">
-
                   <InfoCard
                     icon={<User size={22} />}
                     title="Full Name"
@@ -130,23 +208,97 @@ function Profile() {
                         </p>
 
                         <p className="font-semibold text-gray-800">
-                          {user.address}
+                          {user.address || "Not provided"}
                         </p>
                       </div>
                     </div>
                   </div>
+                </div>
 
+                <div className="mt-10 rounded-3xl border border-gray-100 bg-gray-50 p-6">
+                  <div className="mb-5 flex items-center gap-3">
+                    <Activity className="text-red-600" />
+
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">
+                        Donation Status
+                      </h3>
+
+                      <p className="text-sm text-gray-500">
+                        Your blood donation availability
+                      </p>
+                    </div>
+                  </div>
+
+                  {donationStatus.blocked ? (
+                    <div className="rounded-2xl bg-red-50 p-5">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-xl">
+                          🔴
+                        </div>
+
+                        <div>
+                          <p className="font-bold text-red-600">
+                            Currently Unavailable
+                          </p>
+
+                          <p className="text-sm text-gray-600">
+                            You can donate again after{" "}
+                            <span className="font-bold">
+                              {formatDate(donationStatus.availableDate)}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex items-center gap-2 text-sm text-gray-600">
+                        <CalendarIcon size={18} />
+
+                        <span>
+                          Remaining:{" "}
+                          <strong>
+                            {donationStatus.remainingDays} days
+                          </strong>
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl bg-green-50 p-5">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-xl">
+                          🟢
+                        </div>
+
+                        <div>
+                          <p className="font-bold text-green-600">
+                            Available
+                          </p>
+
+                          <p className="text-sm text-gray-600">
+                            You are currently available to donate blood.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {user.lastDonationDate && (
+                    <p className="mt-4 text-sm text-gray-500">
+                      Last donation:{" "}
+                      <span className="font-semibold text-gray-700">
+                        {formatDate(user.lastDonationDate)}
+                      </span>
+                    </p>
+                  )}
                 </div>
 
                 <div className="mt-10">
-
                   <h3 className="mb-5 flex items-center gap-2 text-xl font-bold text-gray-800">
                     <CreditCard className="text-red-600" />
                     National ID Card
                   </h3>
 
                   <div className="grid gap-6 md:grid-cols-2">
-
                     <div>
                       <p className="mb-2 font-medium text-gray-600">
                         Front Side
@@ -177,17 +329,15 @@ function Profile() {
                           className="h-56 w-full rounded-2xl border object-cover shadow"
                         />
                       ) : (
-                        <div className="flex h-56 items-center justify-center rounded-2xl bg-gray-100 text-gray-400">
+                        <div className="flex h-56 w-full items-center justify-center rounded-2xl bg-gray-100 text-gray-400">
                           No ID image
                         </div>
                       )}
                     </div>
-
                   </div>
                 </div>
 
                 <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-
                   <button
                     type="button"
                     onClick={handleEdit}
@@ -205,12 +355,10 @@ function Profile() {
                     <LogOut size={19} />
                     Logout
                   </button>
-
                 </div>
               </>
             ) : (
               <div className="space-y-8">
-
                 <div className="flex flex-col items-center">
                   {formData.photo ? (
                     <img
@@ -239,7 +387,6 @@ function Profile() {
                 </div>
 
                 <div className="grid gap-5 md:grid-cols-2">
-
                   <InputField
                     label="First Name"
                     name="firstName"
@@ -324,7 +471,6 @@ function Profile() {
                       <option value="Fayoum">Fayoum</option>
                     </select>
                   </div>
-
                 </div>
 
                 <InputField
@@ -340,7 +486,6 @@ function Profile() {
                   </label>
 
                   <div className="grid gap-5 md:grid-cols-2">
-
                     <FileField
                       label="Front"
                       name="idFront"
@@ -354,12 +499,10 @@ function Profile() {
                       value={formData.idBack}
                       onChange={handleFileChange}
                     />
-
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-3 pt-4 sm:flex-row">
-
                   <button
                     type="button"
                     onClick={handleSave}
@@ -376,12 +519,9 @@ function Profile() {
                   >
                     Cancel
                   </button>
-
                 </div>
-
               </div>
             )}
-
           </div>
         </div>
       </div>
@@ -402,7 +542,13 @@ function InfoCard({ icon, title, value, red = false }) {
             {title}
           </p>
 
-          <p className={red ? "font-semibold text-red-600" : "font-semibold text-gray-800"}>
+          <p
+            className={
+              red
+                ? "font-semibold text-red-600"
+                : "font-semibold text-gray-800"
+            }
+          >
             {value || "Not provided"}
           </p>
         </div>
@@ -440,7 +586,6 @@ function InputField({
 function FileField({ label, name, value, onChange }) {
   return (
     <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 p-4">
-
       <label className="mb-3 block font-semibold text-gray-700">
         ID Card - {label}
       </label>
@@ -462,6 +607,7 @@ function FileField({ label, name, value, onChange }) {
       />
 
     </div>
+
   );
 }
 

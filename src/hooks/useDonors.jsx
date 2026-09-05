@@ -42,19 +42,83 @@ function useDonors() {
   };
 
   const getBlockedUntil = (donor) => {
-    if (!donor.blockedUntil) return null;
-
-    const date = new Date(donor.blockedUntil);
-
-    if (date <= new Date()) {
+    if (!donor?.blockedUntil) {
       return null;
     }
 
-    return date;
+    const blockedDate = new Date(donor.blockedUntil);
+    const now = new Date();
+
+    if (isNaN(blockedDate.getTime())) {
+      return null;
+    }
+
+    if (blockedDate <= now) {
+      return null;
+    }
+
+    return blockedDate;
   };
 
+  const isDonorBlocked = (donor) => {
+    return getBlockedUntil(donor) !== null;
+  };
+
+  const isDonorAvailable = (donor) => {
+    return !isDonorBlocked(donor);
+  };
+
+  const updateExpiredDonors = () => {
+    const updatedDonors = donors.map((donor) => {
+      if (!donor.blockedUntil) {
+        return donor;
+      }
+
+      const blockedUntil = new Date(donor.blockedUntil);
+
+      if (
+        !isNaN(blockedUntil.getTime()) &&
+        blockedUntil <= new Date()
+      ) {
+        return {
+          ...donor,
+          available: true,
+          blockedUntil: null,
+          availableDate: new Date()
+            .toISOString()
+            .split("T")[0],
+        };
+      }
+
+      return donor;
+    });
+
+    localStorage.setItem(
+      "blood_donors",
+      JSON.stringify(updatedDonors)
+    );
+
+    setDonors(updatedDonors);
+
+    window.dispatchEvent(new Event("donorsUpdated"));
+  };
+
+  useEffect(() => {
+    updateExpiredDonors();
+
+    const interval = setInterval(() => {
+      updateExpiredDonors();
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const formatDate = (date) => {
-    return date.toLocaleDateString("en-GB");
+    if (!date) {
+      return "";
+    }
+
+    return new Date(date).toLocaleDateString("en-GB");
   };
 
   return {
@@ -62,6 +126,9 @@ function useDonors() {
     setDonors,
     addDonor,
     getBlockedUntil,
+    isDonorBlocked,
+    isDonorAvailable,
+    updateExpiredDonors,
     formatDate,
   };
 }

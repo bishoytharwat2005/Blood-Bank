@@ -15,6 +15,52 @@ import {
 
 import useFindBlood from "@/hooks/useFindBlood";
 
+function getBlockedUntil(donor) {
+  if (donor.blockedUntil) {
+    const blockedUntil = new Date(donor.blockedUntil);
+
+    if (!Number.isNaN(blockedUntil.getTime())) {
+      if (new Date() < blockedUntil) {
+        return blockedUntil;
+      }
+
+      return null;
+    }
+  }
+
+  if (donor.lastDonationDate) {
+    const lastDonation = new Date(donor.lastDonationDate);
+
+    if (Number.isNaN(lastDonation.getTime())) {
+      return null;
+    }
+
+    const blockedUntil = new Date(lastDonation);
+
+    blockedUntil.setMonth(
+      blockedUntil.getMonth() + 3
+    );
+
+    if (new Date() < blockedUntil) {
+      return blockedUntil;
+    }
+  }
+
+  return null;
+}
+
+function formatDate(date) {
+  if (!date) return "";
+
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "";
+  }
+
+  return parsedDate.toLocaleDateString("en-GB");
+}
+
 function FindBlood() {
   const navigate = useNavigate();
 
@@ -34,6 +80,7 @@ function FindBlood() {
   } = useFindBlood(navigate);
 
   const [showModal, setShowModal] = useState(false);
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -53,7 +100,12 @@ function FindBlood() {
 
   const handleSubmitRequest = async (e) => {
     e.preventDefault();
-    if (!formData.firstName || !formData.phone || !formData.hospital) {
+
+    if (
+      !formData.firstName ||
+      !formData.phone ||
+      !formData.hospital
+    ) {
       alert("Please fill in all required fields.");
       return;
     }
@@ -122,7 +174,10 @@ function FindBlood() {
         {loading ? (
           <div className="py-16 text-center">
             <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-red-200 border-t-red-600" />
-            <p className="mt-4 text-gray-500">Loading data...</p>
+
+            <p className="mt-4 text-gray-500">
+              Loading data...
+            </p>
           </div>
         ) : (
           <>
@@ -143,7 +198,10 @@ function FindBlood() {
                       onChange={(e) => setBloodType(e.target.value)}
                       className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-red-500"
                     >
-                      <option value="">All Blood Types</option>
+                      <option value="">
+                        All Blood Types
+                      </option>
+
                       <option value="A+">A+</option>
                       <option value="A-">A-</option>
                       <option value="B+">B+</option>
@@ -179,19 +237,33 @@ function FindBlood() {
                 ) : (
                   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {filteredDonors.map((donor, index) => {
+                      const blockedUntil = getBlockedUntil(donor);
+
+                      const isBlocked = !!blockedUntil;
+
+                      if (isBlocked) {
+                        return null;
+                      }
+
                       const name = donor.firstName
                         ? `${donor.firstName} ${donor.lastName || ""}`
                         : donor.name || "Blood Donor";
 
                       const blood =
-                        donor.bloodGroup || donor.bloodType || "N/A";
+                        donor.bloodGroup ||
+                        donor.bloodType ||
+                        "N/A";
 
                       const donorCity =
-                        donor.address?.city || donor.city || "Unknown";
+                        donor.address?.city ||
+                        donor.city ||
+                        "Unknown";
 
                       const image =
                         donor.image ||
-                        `https://dummyjson.com/icon/${donor.id || index}/128`;
+                        `https://dummyjson.com/icon/${
+                          donor.id || index
+                        }/128`;
 
                       return (
                         <div
@@ -236,10 +308,17 @@ function FindBlood() {
                               </p>
                             )}
 
-                            {donor.availableDate && (
+                            {donor.lastDonationDate && (
                               <p className="flex items-center gap-2">
                                 <CalendarIcon className="h-4 w-4" />
-                                Available: {donor.availableDate}
+
+                                Last Donation:
+
+                                <span className="font-medium">
+                                  {formatDate(
+                                    donor.lastDonationDate
+                                  )}
+                                </span>
                               </p>
                             )}
 
@@ -247,13 +326,15 @@ function FindBlood() {
                               <Activity className="h-4 w-4 text-green-600" />
 
                               <span className="font-semibold text-green-600">
-                                Available
+                                🟢 Available
                               </span>
                             </p>
                           </div>
 
                           <button
-                            onClick={() => handleContact(donor)}
+                            onClick={() =>
+                              handleContact(donor)
+                            }
                             className="mt-6 flex w-full items-center justify-center rounded-xl bg-red-600 py-3 font-semibold text-white transition hover:bg-red-700"
                           >
                             <MessageCircle className="mr-2 h-5 w-5" />
@@ -295,14 +376,20 @@ function FindBlood() {
                   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {requests.map((request, index) => {
                       const requestName = request.firstName
-                        ? `${request.firstName} ${request.lastName || ""}`
+                        ? `${request.firstName} ${
+                            request.lastName || ""
+                          }`
                         : request.name || "Blood Request";
 
                       const requestCity =
-                        request.address?.city || request.city || "";
+                        request.address?.city ||
+                        request.city ||
+                        "";
 
                       const requestBlood =
-                        request.bloodGroup || request.bloodType || "N/A";
+                        request.bloodGroup ||
+                        request.bloodType ||
+                        "N/A";
 
                       return (
                         <div
@@ -348,7 +435,10 @@ function FindBlood() {
                             )}
 
                             {request.unitsNeeded && (
-                              <p>Units Needed: {request.unitsNeeded}</p>
+                              <p>
+                                Units Needed:{" "}
+                                {request.unitsNeeded}
+                              </p>
                             )}
                           </div>
                         </div>
@@ -368,6 +458,7 @@ function FindBlood() {
                 <h2 className="text-2xl font-bold text-gray-900">
                   Create Blood Request
                 </h2>
+
                 <button
                   onClick={() => setShowModal(false)}
                   className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
@@ -376,7 +467,10 @@ function FindBlood() {
                 </button>
               </div>
 
-              <form onSubmit={handleSubmitRequest} className="space-y-4">
+              <form
+                onSubmit={handleSubmitRequest}
+                className="space-y-4"
+              >
                 <div className="grid grid-cols-2 gap-3">
                   <input
                     type="text"
@@ -384,16 +478,23 @@ function FindBlood() {
                     required
                     value={formData.firstName}
                     onChange={(e) =>
-                      setFormData({ ...formData, firstName: e.target.value })
+                      setFormData({
+                        ...formData,
+                        firstName: e.target.value,
+                      })
                     }
                     className="rounded-xl border border-gray-200 p-3 outline-none focus:border-red-500"
                   />
+
                   <input
                     type="text"
                     placeholder="Last Name"
                     value={formData.lastName}
                     onChange={(e) =>
-                      setFormData({ ...formData, lastName: e.target.value })
+                      setFormData({
+                        ...formData,
+                        lastName: e.target.value,
+                      })
                     }
                     className="rounded-xl border border-gray-200 p-3 outline-none focus:border-red-500"
                   />
@@ -403,17 +504,27 @@ function FindBlood() {
                   <select
                     value={formData.bloodGroup}
                     onChange={(e) =>
-                      setFormData({ ...formData, bloodGroup: e.target.value })
+                      setFormData({
+                        ...formData,
+                        bloodGroup: e.target.value,
+                      })
                     }
                     className="rounded-xl border border-gray-200 p-3 outline-none focus:border-red-500"
                   >
-                    {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(
-                      (type) => (
-                        <option key={type} value={type}>
-                          {type}
-                        </option>
-                      )
-                    )}
+                    {[
+                      "A+",
+                      "A-",
+                      "B+",
+                      "B-",
+                      "AB+",
+                      "AB-",
+                      "O+",
+                      "O-",
+                    ].map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
                   </select>
 
                   <input
@@ -422,7 +533,10 @@ function FindBlood() {
                     required
                     value={formData.city}
                     onChange={(e) =>
-                      setFormData({ ...formData, city: e.target.value })
+                      setFormData({
+                        ...formData,
+                        city: e.target.value,
+                      })
                     }
                     className="rounded-xl border border-gray-200 p-3 outline-none focus:border-red-500"
                   />
@@ -434,7 +548,10 @@ function FindBlood() {
                   required
                   value={formData.hospital}
                   onChange={(e) =>
-                    setFormData({ ...formData, hospital: e.target.value })
+                    setFormData({
+                      ...formData,
+                      hospital: e.target.value,
+                    })
                   }
                   className="w-full rounded-xl border border-gray-200 p-3 outline-none focus:border-red-500"
                 />
@@ -446,10 +563,14 @@ function FindBlood() {
                     required
                     value={formData.phone}
                     onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
+                      setFormData({
+                        ...formData,
+                        phone: e.target.value,
+                      })
                     }
                     className="rounded-xl border border-gray-200 p-3 outline-none focus:border-red-500"
                   />
+
                   <input
                     type="number"
                     min="1"
@@ -458,7 +579,9 @@ function FindBlood() {
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        unitsNeeded: Number(e.target.value),
+                        unitsNeeded: Number(
+                          e.target.value
+                        ),
                       })
                     }
                     className="rounded-xl border border-gray-200 p-3 outline-none focus:border-red-500"
@@ -468,7 +591,10 @@ function FindBlood() {
                 <select
                   value={formData.urgency}
                   onChange={(e) =>
-                    setFormData({ ...formData, urgency: e.target.value })
+                    setFormData({
+                      ...formData,
+                      urgency: e.target.value,
+                    })
                   }
                   className="w-full rounded-xl border border-gray-200 p-3 outline-none focus:border-red-500"
                 >
@@ -485,6 +611,7 @@ function FindBlood() {
                   >
                     Cancel
                   </button>
+
                   <button
                     type="submit"
                     className="rounded-xl bg-red-600 px-6 py-2 font-semibold text-white transition hover:bg-red-700"

@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import {
-  Phone,
   MapPin,
   CalendarIcon,
   Activity,
@@ -29,12 +28,7 @@ function DonateBlood() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const {
-    donors,
-    addDonor,
-    getBlockedUntil,
-    formatDate,
-  } = useDonors();
+  const { donors, addDonor, getBlockedUntil, formatDate } = useDonors();
 
   const handleChange = (e) => {
     setFormData({
@@ -49,11 +43,7 @@ function DonateBlood() {
     setMessage("");
     setError("");
 
-    if (
-      !formData.name ||
-      !formData.phone ||
-      !formData.city
-    ) {
+    if (!formData.name || !formData.phone || !formData.city) {
       setError("Please complete all fields.");
       return;
     }
@@ -83,33 +73,71 @@ function DonateBlood() {
       const newDonor = await response.json();
 
       const donationDate = new Date();
-      const blockedUntilDate = new Date(donationDate);
 
+      const blockedUntilDate = new Date(donationDate);
       blockedUntilDate.setMonth(
         blockedUntilDate.getMonth() + 3
       );
 
+      const donationDateString = donationDate.toISOString();
+      const blockedUntilString = blockedUntilDate.toISOString();
+
       const donor = {
         id: `local-${Date.now()}`,
+
         firstName: formData.name,
         lastName: "",
+
         phone: formData.phone,
+
         bloodGroup: formData.bloodType,
+        bloodType: formData.bloodType,
+
         address: {
           city: formData.city,
         },
-        availableDate: blockedUntilDate
-          .toISOString()
-          .split("T")[0],
+
+        city: formData.city,
+
+        lastDonationDate: donationDateString,
+
+        blockedUntil: blockedUntilString,
+
+        availableDate: blockedUntilString.split("T")[0],
+
         available: false,
-        blockedUntil: blockedUntilDate.toISOString(),
+
         image:
           newDonor.image ||
           `https://dummyjson.com/icon/${newDonor.id || 1}/128`,
+
         source: "local",
       };
 
       addDonor(donor);
+
+      const userData = localStorage.getItem("userData");
+
+      if (userData) {
+        try {
+          const currentUser = JSON.parse(userData);
+
+          const updatedUser = {
+            ...currentUser,
+            lastDonationDate: donationDateString,
+            blockedUntil: blockedUntilString,
+            availableDate: blockedUntilString.split("T")[0],
+            available: false,
+          };
+
+          localStorage.setItem(
+            "userData",
+            JSON.stringify(updatedUser)
+          );
+        } catch (error) {
+          console.error(error);
+        }
+      }
 
       setMessage(
         `You have successfully registered as a blood donor ❤️. You will be available again on ${blockedUntilDate
@@ -348,23 +376,19 @@ function DonateBlood() {
 
                 const image =
                   donor.image ||
-                  `https://dummyjson.com/icon/${donor.id || index
-                  }/128`;
+                  `https://dummyjson.com/icon/${donor.id || index}/128`;
 
                 const blockedUntil = getBlockedUntil(donor);
+
                 const isBlocked = !!blockedUntil;
 
                 return (
-
                   <div
                     key={`${donor.id || "donor"}-${index}`}
                     className="rounded-3xl bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
                   >
-
                     <div className="flex items-center justify-between gap-4">
-
                       <div className="flex items-center gap-4">
-                        
                         <img
                           src={image}
                           alt={name}
@@ -399,7 +423,7 @@ function DonateBlood() {
 
                       {donor.phone && (
                         <p className="flex items-center gap-2">
-                          <Phone className="h-4 w-4" />
+                          <PhoneIcon />
                           Phone:
                           <span className="font-medium">
                             {donor.phone}
@@ -407,12 +431,12 @@ function DonateBlood() {
                         </p>
                       )}
 
-                      {donor.availableDate && (
+                      {donor.lastDonationDate && (
                         <p className="flex items-center gap-2">
                           <CalendarIcon className="h-4 w-4" />
-                          Available:
+                          Last Donation:
                           <span className="font-medium">
-                            {donor.availableDate}
+                            {formatDate(donor.lastDonationDate)}
                           </span>
                         </p>
                       )}
@@ -424,15 +448,13 @@ function DonateBlood() {
                           </p>
 
                           <p className="mt-1 text-sm text-gray-600">
-                            Blocked until:{" "}
+                            Available again:{" "}
                             <span className="font-semibold">
                               {formatDate(blockedUntil)}
                             </span>
                           </p>
                         </div>
-                      ) 
-                      : 
-                      (
+                      ) : (
                         <p className="flex items-center gap-2">
                           <Activity className="h-4 w-4" />
 
@@ -459,20 +481,19 @@ function DonateBlood() {
                         Donor is unavailable
                       </div>
                     )}
-
                   </div>
-
                 );
               })}
-
             </div>
-
           )}
-
         </div>
       </div>
     </section>
   );
+}
+
+function PhoneIcon() {
+  return <span className="text-gray-500">📞</span>;
 }
 
 export default DonateBlood;
