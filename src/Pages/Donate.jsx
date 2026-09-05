@@ -21,7 +21,8 @@ function DonateBlood() {
     bloodType: "O+",
     phone: "",
     city: "",
-    availableDate: "",
+    hasDonatedRecently: false,
+    lastDonationDate: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -31,9 +32,10 @@ function DonateBlood() {
   const { donors, addDonor, getBlockedUntil, formatDate } = useDonors();
 
   const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: type === "checkbox" ? checked : value,
     });
   };
 
@@ -44,7 +46,17 @@ function DonateBlood() {
     setError("");
 
     if (!formData.name || !formData.phone || !formData.city) {
-      setError("Please complete all fields.");
+      setError("Please complete all required fields.");
+      return;
+    }
+
+    // تحقق مباشر من التكرار بنفس رقم الهاتف
+    const isAlreadyRegistered = donors.some(
+      (d) => d.phone && d.phone.trim() === formData.phone.trim()
+    );
+
+    if (isAlreadyRegistered) {
+      setError("This phone number is already registered as a donor!");
       return;
     }
 
@@ -72,49 +84,46 @@ function DonateBlood() {
 
       const newDonor = await response.json();
 
-      const donationDate = new Date();
+      // حساب تاريخ الحظر فقط في حالة إذا تم تحديد الخيار وإدخال تاريخ التبرع السابق
+      let donationDateString = null;
+      let blockedUntilString = null;
 
-      const blockedUntilDate = new Date(donationDate);
-      blockedUntilDate.setMonth(
-        blockedUntilDate.getMonth() + 3
-      );
+      if (formData.hasDonatedRecently && formData.lastDonationDate) {
+        const donationDate = new Date(formData.lastDonationDate);
+        const blockedUntilDate = new Date(donationDate);
+        blockedUntilDate.setMonth(blockedUntilDate.getMonth() + 3);
 
-      const donationDateString = donationDate.toISOString();
-      const blockedUntilString = blockedUntilDate.toISOString();
+        donationDateString = donationDate.toISOString();
+        blockedUntilString = blockedUntilDate.toISOString();
+      }
 
       const donor = {
         id: `local-${Date.now()}`,
-
+        name: formData.name,
         firstName: formData.name,
         lastName: "",
-
         phone: formData.phone,
-
         bloodGroup: formData.bloodType,
         bloodType: formData.bloodType,
-
         address: {
           city: formData.city,
         },
-
         city: formData.city,
-
         lastDonationDate: donationDateString,
-
         blockedUntil: blockedUntilString,
-
-        availableDate: blockedUntilString.split("T")[0],
-
-        available: false,
-
+        available: !blockedUntilString,
         image:
           newDonor.image ||
           `https://dummyjson.com/icon/${newDonor.id || 1}/128`,
-
         source: "local",
       };
 
-      addDonor(donor);
+      const success = addDonor(donor);
+
+      if (!success) {
+        setError("This donor is already registered!");
+        return;
+      }
 
       const userData = localStorage.getItem("userData");
 
@@ -126,23 +135,24 @@ function DonateBlood() {
             ...currentUser,
             lastDonationDate: donationDateString,
             blockedUntil: blockedUntilString,
-            availableDate: blockedUntilString.split("T")[0],
-            available: false,
+            availableDate: blockedUntilString
+              ? blockedUntilString.split("T")[0]
+              : null,
+            available: !blockedUntilString,
           };
 
-          localStorage.setItem(
-            "userData",
-            JSON.stringify(updatedUser)
-          );
-        } catch (error) {
-          console.error(error);
+          localStorage.setItem("userData", JSON.stringify(updatedUser));
+        } catch (err) {
+          console.error(err);
         }
       }
 
       setMessage(
-        `You have successfully registered as a blood donor ❤️. You will be available again on ${blockedUntilDate
-          .toISOString()
-          .split("T")[0]}.`
+        donor.blockedUntil
+          ? `Registered successfully ❤️. You will be available again on ${formatDate(
+              donor.blockedUntil
+            )}.`
+          : "Registered successfully ❤️. You are now visible as an available donor!"
       );
 
       setFormData({
@@ -150,10 +160,11 @@ function DonateBlood() {
         bloodType: "O+",
         phone: "",
         city: "",
-        availableDate: "",
+        hasDonatedRecently: false,
+        lastDonationDate: "",
       });
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error(err);
       setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
@@ -300,6 +311,39 @@ function DonateBlood() {
                 />
               </div>
 
+              <div className="flex items-center gap-3 pt-2">
+                <input
+                  type="checkbox"
+                  id="hasDonatedRecently"
+                  name="hasDonatedRecently"
+                  checked={formData.hasDonatedRecently}
+                  onChange={handleChange}
+                  className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                />
+                <label
+                  htmlFor="hasDonatedRecently"
+                  className="cursor-pointer text-sm font-medium text-gray-700"
+                >
+                  Have you donated blood recently?
+                </label>
+              </div>
+
+              {formData.hasDonatedRecently && (
+                <div>
+                  <label className="mb-2 block font-medium text-gray-700">
+                    Last Donation Date
+                  </label>
+
+                  <input
+                    type="date"
+                    name="lastDonationDate"
+                    value={formData.lastDonationDate}
+                    onChange={handleChange}
+                    className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-red-500"
+                  />
+                </div>
+              )}
+
               {message && (
                 <div className="rounded-xl bg-green-50 p-4 font-medium text-green-600">
                   {message}
@@ -361,7 +405,7 @@ function DonateBlood() {
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {donors.map((donor, index) => {
                 const name = donor.firstName
-                  ? `${donor.firstName} ${donor.lastName || ""}`
+                  ? `${donor.firstName} ${donor.lastName || ""}`.trim()
                   : donor.name || "Blood Donor";
 
                 const blood =

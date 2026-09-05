@@ -14,7 +14,6 @@ function useDonors() {
       try {
         const savedDonors =
           JSON.parse(localStorage.getItem("blood_donors")) || [];
-
         setDonors(savedDonors);
       } catch {
         setDonors([]);
@@ -28,17 +27,23 @@ function useDonors() {
     };
   }, []);
 
-  const addDonor = (donor) => {
-    const updatedDonors = [donor, ...donors];
-
-    localStorage.setItem(
-      "blood_donors",
-      JSON.stringify(updatedDonors)
+  const addDonor = (newDonor) => {
+    // 1. منع تكرار التسجيل بنفس رقم الهاتف
+    const exists = donors.some(
+      (d) => d.phone && newDonor.phone && d.phone.trim() === newDonor.phone.trim()
     );
 
+    if (exists) {
+      return false;
+    }
+
+    const updatedDonors = [newDonor, ...donors];
+
+    localStorage.setItem("blood_donors", JSON.stringify(updatedDonors));
     setDonors(updatedDonors);
 
     window.dispatchEvent(new Event("donorsUpdated"));
+    return true;
   };
 
   const getBlockedUntil = (donor) => {
@@ -49,11 +54,7 @@ function useDonors() {
     const blockedDate = new Date(donor.blockedUntil);
     const now = new Date();
 
-    if (isNaN(blockedDate.getTime())) {
-      return null;
-    }
-
-    if (blockedDate <= now) {
+    if (isNaN(blockedDate.getTime()) || blockedDate <= now) {
       return null;
     }
 
@@ -76,31 +77,19 @@ function useDonors() {
 
       const blockedUntil = new Date(donor.blockedUntil);
 
-      if (
-        !isNaN(blockedUntil.getTime()) &&
-        blockedUntil <= new Date()
-      ) {
+      if (!isNaN(blockedUntil.getTime()) && blockedUntil <= new Date()) {
         return {
           ...donor,
           available: true,
           blockedUntil: null,
-          availableDate: new Date()
-            .toISOString()
-            .split("T")[0],
         };
       }
 
       return donor;
     });
 
-    localStorage.setItem(
-      "blood_donors",
-      JSON.stringify(updatedDonors)
-    );
-
+    localStorage.setItem("blood_donors", JSON.stringify(updatedDonors));
     setDonors(updatedDonors);
-
-    window.dispatchEvent(new Event("donorsUpdated"));
   };
 
   useEffect(() => {
@@ -117,7 +106,6 @@ function useDonors() {
     if (!date) {
       return "";
     }
-
     return new Date(date).toLocaleDateString("en-GB");
   };
 
