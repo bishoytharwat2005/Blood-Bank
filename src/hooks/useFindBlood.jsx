@@ -106,12 +106,9 @@ export default function useFindBlood(navigate) {
     return matchesType && matchesCity;
   });
 
+  // التواصل مع الدونور -> يوجه لصفحة الشات ويبعت بيانات الدونور كاملة
   const handleContact = (donor) => {
-    if (donor.phone) {
-      window.location.href = `tel:${donor.phone}`;
-    } else {
-      alert("No phone number available.");
-    }
+    navigate("/chat", { state: { donor } });
   };
 
   return {
