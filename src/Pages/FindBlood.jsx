@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import {
   Phone,
@@ -31,6 +31,7 @@ function FindBlood() {
     filteredDonors,
     handleContact,
     addBloodRequest,
+    loadData,
   } = useFindBlood(navigate);
 
   const [showModal, setShowModal] = useState(false);
@@ -44,6 +45,13 @@ function FindBlood() {
     urgency: "Normal",
     unitsNeeded: 1,
   });
+
+  // إعادة تحميل البيانات عند تغيير التبويب أو عند فتح الصفحة
+  useEffect(() => {
+    if (loadData) {
+      loadData();
+    }
+  }, [activeTab, loadData]);
 
   const handleSubmitRequest = async (e) => {
     e.preventDefault();
@@ -71,6 +79,12 @@ function FindBlood() {
     setShowModal(false);
   };
 
+  // تصفية المتبرعين المتاحين فقط قبل العرض
+  const availableDonors = filteredDonors.filter((donor) => {
+    const blockedUntil = getBlockedUntil ? getBlockedUntil(donor) : null;
+    return !blockedUntil;
+  });
+
   return (
     <section className="min-h-screen bg-gray-50 px-4 py-30">
       <div className="mx-auto max-w-6xl">
@@ -86,13 +100,11 @@ function FindBlood() {
           </p>
         </div>
 
-        {/* Search Filters Component - شريط التصفية والبحث يعمل على التبويبين */}
+        {/* Search Filters Component */}
         <div className="mb-8 rounded-3xl bg-white p-6 shadow-sm">
           <div className="mb-5 flex items-center gap-2">
             <Search className="h-5 w-5 text-red-600" />
-            <h2 className="text-xl font-bold text-gray-900">
-              Filter Options
-            </h2>
+            <h2 className="text-xl font-bold text-gray-900">Filter Options</h2>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -156,7 +168,7 @@ function FindBlood() {
             {/* Donors Tab */}
             {activeTab === "donors" && (
               <>
-                {filteredDonors.length === 0 ? (
+                {availableDonors.length === 0 ? (
                   <div className="rounded-3xl bg-white p-12 text-center shadow-sm">
                     <Heart className="mx-auto h-16 w-16 text-red-500" />
                     <h3 className="mt-5 text-xl font-bold text-gray-900">
@@ -168,10 +180,7 @@ function FindBlood() {
                   </div>
                 ) : (
                   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {filteredDonors.map((donor, index) => {
-                      const blockedUntil = getBlockedUntil ? getBlockedUntil(donor) : null;
-                      if (blockedUntil) return null;
-
+                    {availableDonors.map((donor, index) => {
                       const name = donor.firstName
                         ? `${donor.firstName} ${donor.lastName || ""}`
                         : donor.name || "Blood Donor";
@@ -188,7 +197,7 @@ function FindBlood() {
 
                       return (
                         <div
-                          key={`${donor.id || "donor"}-${index}`}
+                          key={donor.id ? `donor-${donor.id}` : `donor-idx-${index}`}
                           className="rounded-3xl bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
                         >
                           <div className="flex items-center justify-between gap-4">
@@ -288,7 +297,7 @@ function FindBlood() {
 
                       return (
                         <div
-                          key={request.id || index}
+                          key={request.id ? `req-${request.id}` : `req-idx-${index}`}
                           className="rounded-3xl bg-white p-6 shadow-sm"
                         >
                           <div className="flex items-center justify-between gap-4">
@@ -338,7 +347,7 @@ function FindBlood() {
           </>
         )}
 
-        {/* Modal - إضافة طلب دم جديد */}
+        {/* Modal - Create Blood Request */}
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
             <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-xl">
@@ -481,4 +490,4 @@ function FindBlood() {
   );
 }
 
-export default FindBlood;
+export default FindBlood; 

@@ -29,7 +29,7 @@ export default function useFindBlood(navigate) {
         image: user.image,
       }));
 
-      // دمج المتبرعين المحليين أولاً ثم متبرعي الـ API
+      // دمج المتبرعين المحليين أولاً في البداية ثم متبرعي الـ API
       setDonors([...localDonors, ...apiDonors]);
 
       // 3. جلب طلبات التبرع بالدم من الـ API
@@ -56,8 +56,21 @@ export default function useFindBlood(navigate) {
     }
   }, []);
 
+  // الاستماع لحدث إضافة متبرع جديد من useDonors للتحديث الفوري
   useEffect(() => {
     loadData();
+
+    const handleDonorsUpdated = () => {
+      loadData();
+    };
+
+    window.addEventListener("donorsUpdated", handleDonorsUpdated);
+    window.addEventListener("storage", handleDonorsUpdated);
+
+    return () => {
+      window.removeEventListener("donorsUpdated", handleDonorsUpdated);
+      window.removeEventListener("storage", handleDonorsUpdated);
+    };
   }, [loadData]);
 
   const addBloodRequest = async (newRequest) => {
