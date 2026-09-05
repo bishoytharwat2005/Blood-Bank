@@ -28,10 +28,13 @@ function useDonors() {
   }, []);
 
   const addDonor = (newDonor) => {
-    // 1. منع تكرار التسجيل بنفس رقم الهاتف
-    const exists = donors.some(
-      (d) => d.phone && newDonor.phone && d.phone.trim() === newDonor.phone.trim()
-    );
+    // 1. تنظيف رقم الهاتف ومقارنته لمنع التكرار تماماً
+    const cleanPhone = newDonor.phone ? String(newDonor.phone).trim() : "";
+
+    const exists = donors.some((d) => {
+      const existingPhone = d.phone ? String(d.phone).trim() : "";
+      return cleanPhone && existingPhone === cleanPhone;
+    });
 
     if (exists) {
       return false;
@@ -54,6 +57,7 @@ function useDonors() {
     const blockedDate = new Date(donor.blockedUntil);
     const now = new Date();
 
+    // إذا كان تاريخ الحظر انتهى بالنسبة لتاريخ الوقت الحالي، ارجع null (أي متاح)
     if (isNaN(blockedDate.getTime()) || blockedDate <= now) {
       return null;
     }
@@ -109,8 +113,19 @@ function useDonors() {
     return new Date(date).toLocaleDateString("en-GB");
   };
 
+  // دالة لتصفية القائمة ومنع عرض الكروت المكررة بنسخ مختلفة في الـ Render
+  const uniqueDonors = donors.filter(
+    (donor, index, self) =>
+      index ===
+      self.findIndex(
+        (d) =>
+          (d.phone && donor.phone && String(d.phone).trim() === String(donor.phone).trim()) ||
+          (d.id && donor.id && d.id === donor.id)
+      )
+  );
+
   return {
-    donors,
+    donors: uniqueDonors, // إرجاع القائمة بدون تكرار
     setDonors,
     addDonor,
     getBlockedUntil,

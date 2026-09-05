@@ -9,7 +9,9 @@ import {
   HeartIcon,
   HospitalIcon,
   HeartHandshakeIcon,
+
   MessageCircle,
+  Phone,
 } from "lucide-react";
 import useDonors from "@/hooks/useDonors";
 
@@ -52,7 +54,7 @@ function DonateBlood() {
 
     // تحقق مباشر من التكرار بنفس رقم الهاتف
     const isAlreadyRegistered = donors.some(
-      (d) => d.phone && d.phone.trim() === formData.phone.trim()
+      (d) => d.phone && String(d.phone).trim() === formData.phone.trim()
     );
 
     if (isAlreadyRegistered) {
@@ -84,17 +86,24 @@ function DonateBlood() {
 
       const newDonor = await response.json();
 
-      // حساب تاريخ الحظر فقط في حالة إذا تم تحديد الخيار وإدخال تاريخ التبرع السابق
       let donationDateString = null;
       let blockedUntilString = null;
 
-      if (formData.hasDonatedRecently && formData.lastDonationDate) {
+      // إصلاح المشكلة: التأكد من وجود قيمة تاريخ حقيقية وصالحة وليست نصاً فارغاً
+      if (
+        formData.hasDonatedRecently &&
+        formData.lastDonationDate &&
+        formData.lastDonationDate.trim() !== ""
+      ) {
         const donationDate = new Date(formData.lastDonationDate);
-        const blockedUntilDate = new Date(donationDate);
-        blockedUntilDate.setMonth(blockedUntilDate.getMonth() + 3);
 
-        donationDateString = donationDate.toISOString();
-        blockedUntilString = blockedUntilDate.toISOString();
+        if (!isNaN(donationDate.getTime())) {
+          const blockedUntilDate = new Date(donationDate);
+          blockedUntilDate.setMonth(blockedUntilDate.getMonth() + 3);
+
+          donationDateString = donationDate.toISOString();
+          blockedUntilString = blockedUntilDate.toISOString();
+        }
       }
 
       const donor = {
@@ -428,7 +437,7 @@ function DonateBlood() {
 
                 return (
                   <div
-                    key={`${donor.id || "donor"}-${index}`}
+                    key={donor.id || `donor-${index}`}
                     className="rounded-3xl bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
                   >
                     <div className="flex items-center justify-between gap-4">
@@ -467,7 +476,7 @@ function DonateBlood() {
 
                       {donor.phone && (
                         <p className="flex items-center gap-2">
-                          <PhoneIcon />
+                          <Phone className="h-4 w-4 text-gray-500" />
                           Phone:
                           <span className="font-medium">
                             {donor.phone}
@@ -535,9 +544,4 @@ function DonateBlood() {
     </section>
   );
 }
-
-function PhoneIcon() {
-  return <span className="text-gray-500">📞</span>;
-}
-
 export default DonateBlood;
