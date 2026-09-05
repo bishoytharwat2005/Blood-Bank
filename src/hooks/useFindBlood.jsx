@@ -11,8 +11,9 @@ export default function useFindBlood(navigate) {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. جلب المتبرعين المسجلين محلياً من الـ LocalStorage
-      const localDonors = JSON.parse(localStorage.getItem("blood_donors")) || [];
+      // 1. جلب المتبرعين والطلبات المحلية المخزنة في الـ LocalStorage
+      const localDonors = JSON.parse(localStorage.getItem("blood_donors") || "[]");
+      const localRequests = JSON.parse(localStorage.getItem("blood_requests") || "[]");
 
       // 2. جلب المتبرعين من الـ API
       const donorsRes = await fetch("https://dummyjson.com/users?limit=150");
@@ -29,7 +30,7 @@ export default function useFindBlood(navigate) {
         image: user.image,
       }));
 
-      // دمج المتبرعين المحليين أولاً في البداية ثم متبرعي الـ API
+      // دمج المتبرعين المحليين مع متبرعي الـ API
       setDonors([...localDonors, ...apiDonors]);
 
       // 3. جلب طلبات التبرع بالدم من الـ API
@@ -37,7 +38,7 @@ export default function useFindBlood(navigate) {
       const postsData = await postsRes.json();
 
       const apiRequests = (postsData.posts || []).map((post, index) => ({
-        id: post.id,
+        id: `api-${post.id}`,
         firstName: `User_${post.userId}`,
         lastName: `Request`,
         bloodGroup: bloodGroups[index % bloodGroups.length],
@@ -48,7 +49,8 @@ export default function useFindBlood(navigate) {
         unitsNeeded: (index % 3) + 1,
       }));
 
-      setRequests(apiRequests);
+      // 🔥 دمج الطلبات المحلية المضافة عبر الصفحة مع طلبات الـ API
+      setRequests([...localRequests, ...apiRequests]);
     } catch (error) {
       console.error("API Fetch Error:", error);
     } finally {
@@ -56,20 +58,23 @@ export default function useFindBlood(navigate) {
     }
   }, []);
 
-  // الاستماع لحدث إضافة متبرع جديد من useDonors للتحديث الفوري
+  // الاستماع للأحداث والتحديث الفوري عند إضافة طلب أو متبرع
   useEffect(() => {
     loadData();
 
-    const handleDonorsUpdated = () => {
+    const handleDataUpdated = () => {
       loadData();
     };
 
-    window.addEventListener("donorsUpdated", handleDonorsUpdated);
-    window.addEventListener("storage", handleDonorsUpdated);
+    // الاستماع لأحداث التحديث المخصصة والـ storage
+    window.addEventListener("donorsUpdated", handleDataUpdated);
+    window.addEventListener("requestsUpdated", handleDataUpdated);
+    window.addEventListener("storage", handleDataUpdated);
 
     return () => {
-      window.removeEventListener("donorsUpdated", handleDonorsUpdated);
-      window.removeEventListener("storage", handleDonorsUpdated);
+      window.removeEventListener("donorsUpdated", handleDataUpdated);
+      window.removeEventListener("requestsUpdated", handleDataUpdated);
+      window.removeEventListener("storage", handleDataUpdated);
     };
   }, [loadData]);
 
