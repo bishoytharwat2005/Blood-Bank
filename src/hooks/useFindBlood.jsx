@@ -1,23 +1,25 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 export default function useFindBlood(navigate) {
-  const [activeTab, setActiveTab] = useState("requests");
+  const [activeTab, setActiveTab] = useState("donors");
   const [requests, setRequests] = useState([]);
   const [donors, setDonors] = useState([]);
   const [bloodType, setBloodType] = useState("");
   const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. جلب بيانات المتبرعين ديناميكياً من API
+      // 1. جلب المتبرعين المسجلين محلياً من الـ LocalStorage
+      const localDonors = JSON.parse(localStorage.getItem("blood_donors")) || [];
+
+      // 2. جلب المتبرعين من الـ API
       const donorsRes = await fetch("https://dummyjson.com/users?limit=150");
       const donorsData = await donorsRes.json();
-
       const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
-      const formattedDonors = (donorsData.users || []).map((user, index) => ({
+      const apiDonors = (donorsData.users || []).map((user, index) => ({
         id: user.id,
         firstName: user.firstName,
         lastName: user.lastName,
@@ -25,12 +27,12 @@ export default function useFindBlood(navigate) {
         city: user.address?.city || "Cairo",
         phone: user.phone,
         image: user.image,
-        availableDate: "2026-09-15",
       }));
 
-      setDonors(formattedDonors);
+      // دمج المتبرعين المحليين أولاً ثم متبرعي الـ API
+      setDonors([...localDonors, ...apiDonors]);
 
-      // 2. جلب طلبات الدم ديناميكياً بالكامل من API (بدون أي بيانات ثابتة)
+      // 3. جلب طلبات التبرع بالدم من الـ API
       const postsRes = await fetch("https://dummyjson.com/posts?limit=150");
       const postsData = await postsRes.json();
 
@@ -52,13 +54,12 @@ export default function useFindBlood(navigate) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
-  // إضافة طلب جديد عبر API
   const addBloodRequest = async (newRequest) => {
     try {
       const response = await fetch("https://dummyjson.com/posts/add", {
@@ -71,7 +72,6 @@ export default function useFindBlood(navigate) {
       });
 
       const data = await response.json();
-
       const createdEntry = {
         id: data.id || Date.now(),
         ...newRequest,
@@ -84,7 +84,6 @@ export default function useFindBlood(navigate) {
     }
   };
 
-  // فلترة المتبرعين
   const filteredDonors = donors.filter((donor) => {
     const matchesType = bloodType
       ? (donor.bloodGroup || donor.bloodType) === bloodType
@@ -96,7 +95,6 @@ export default function useFindBlood(navigate) {
     return matchesType && matchesCity;
   });
 
-  // فلترة طلبات الدم
   const filteredRequests = requests.filter((req) => {
     const matchesType = bloodType ? req.bloodGroup === bloodType : true;
     const reqCity = req.city || "";
@@ -106,7 +104,6 @@ export default function useFindBlood(navigate) {
     return matchesType && matchesCity;
   });
 
-  // التواصل مع الدونور -> يوجه لصفحة الشات ويبعت بيانات الدونور كاملة
   const handleContact = (donor) => {
     navigate("/chat", { state: { donor } });
   };
