@@ -13,7 +13,24 @@ export default function useFindBlood(navigate) {
     try {
       // 1. جلب المتبرعين والطلبات المحلية المخزنة في الـ LocalStorage
       const localDonors = JSON.parse(localStorage.getItem("blood_donors") || "[]");
-      const localRequests = JSON.parse(localStorage.getItem("blood_requests") || "[]");
+      const rawLocalRequests = JSON.parse(localStorage.getItem("blood_requests") || "[]");
+
+      // 🛠️ توحيد وتنسيق بيانات البوستات المحلية المضافة من Posts.jsx
+      const localRequests = rawLocalRequests.map((req) => {
+        const fullName = req.name || `${req.firstName || ''} ${req.lastName || ''}`.trim() || "Blood Request";
+        return {
+          id: req.id || Date.now(),
+          firstName: req.firstName || req.name || fullName,
+          lastName: req.lastName || "",
+          bloodGroup: req.bloodGroup || req.bloodType || "O+",
+          city: req.city || "Cairo",
+          hospital: req.hospital || "General Hospital",
+          phone: req.phone || "N/A",
+          urgency: req.urgency || "Urgent",
+          unitsNeeded: req.unitsNeeded || req.bags || 1,
+          isLocal: true,
+        };
+      });
 
       // 2. جلب المتبرعين من الـ API
       const donorsRes = await fetch("https://dummyjson.com/users?limit=150");
@@ -30,7 +47,6 @@ export default function useFindBlood(navigate) {
         image: user.image,
       }));
 
-      // دمج المتبرعين المحليين مع متبرعي الـ API
       setDonors([...localDonors, ...apiDonors]);
 
       // 3. جلب طلبات التبرع بالدم من الـ API
@@ -49,7 +65,7 @@ export default function useFindBlood(navigate) {
         unitsNeeded: (index % 3) + 1,
       }));
 
-      // 🔥 دمج الطلبات المحلية المضافة عبر الصفحة مع طلبات الـ API
+      // 🔥 دمج الطلبات المحلية أولاً في المقدمة قبل طلبات الـ API
       setRequests([...localRequests, ...apiRequests]);
     } catch (error) {
       console.error("API Fetch Error:", error);
@@ -66,7 +82,6 @@ export default function useFindBlood(navigate) {
       loadData();
     };
 
-    // الاستماع لأحداث التحديث المخصصة والـ storage
     window.addEventListener("donorsUpdated", handleDataUpdated);
     window.addEventListener("requestsUpdated", handleDataUpdated);
     window.addEventListener("storage", handleDataUpdated);
